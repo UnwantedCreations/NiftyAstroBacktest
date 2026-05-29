@@ -90,3 +90,9 @@ def longitudes_for_date(d: date, hour_ut: float = 0.0) -> dict[str, tuple[float,
 def natal_longitudes() -> dict[str, tuple[float, float]]:
     nc = config.NATAL_CHART
     return longitudes(julday_ut(nc["year"], nc["month"], nc["day"], nc["hour_ut"]))
+
+
+def natal_longitudes_for(year: int, month: int, day: int, hour_ut: float = 12.0) -> dict[str, tuple[float, float]]:
+    """Natal longitudes for an arbitrary chart date. Hour barely matters for the
+    slow natal planets (Mars/Jupiter/Saturn/Rahu/Ketu)."""
+    return longitudes(julday_ut(year, month, day, hour_ut))
