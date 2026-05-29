@@ -86,3 +86,38 @@ def build_baseline_features(df: pd.DataFrame) -> pd.DataFrame:
     out["prev_ret"] = df["prev_ret"].to_numpy()
     out["prev_sign"] = np.sign(df["prev_ret"].to_numpy())
     return out
+
+
+
+# ---------------------------------------------------------------------------
+# Momentum / volatility target (for the "predict the SIZE of the move" question)
+# ---------------------------------------------------------------------------
+def add_magnitude_targets(df: pd.DataFrame) -> pd.DataFrame:
+    """Add non-directional move-size targets + lookback realized-vol features.
+
+    abs_move      = |open->close| % (what an option buyer roughly captures per bar)
+    range_pct     = (high-low)/open % (full bar range)
+    prev_absmove  = previous bar's |move| (same day) - known in advance
+    roll_absmove_4= mean |move| of previous up-to-4 bars (same day) - known in advance
+    """
+    out = df.copy()
+    out["abs_move"] = (df["close"] / df["open"] - 1.0).abs() * 100.0
+    if "high" in df.columns and "low" in df.columns:
+        out["range_pct"] = (df["high"] - df["low"]) / df["open"] * 100.0
+    g = out.groupby("day")["abs_move"]
+    out["prev_absmove"] = g.shift(1).fillna(0.0)
+    out["roll_absmove_4"] = (
+        g.transform(lambda s: s.shift(1).rolling(4, min_periods=1).mean()).fillna(0.0)
+    )
+    return out
+
+
+def build_vol_baseline_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Non-astro volatility baseline: time-of-day buckets + recent realized vol.
+    These encode the well-known intraday-vol shape and vol clustering."""
+    out = pd.DataFrame(index=df.index)
+    for m in sorted(df["minute_of_day"].unique()):
+        out[f"tod_{int(m)}"] = (df["minute_of_day"] == m).astype(float)
+    out["prev_absmove"] = df["prev_absmove"].to_numpy()
+    out["roll_absmove_4"] = df["roll_absmove_4"].to_numpy()
+    return out
