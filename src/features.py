@@ -26,11 +26,16 @@ def feature_names() -> list[str]:
     return names
 
 
-def build_features(dates: pd.Series, hour_ut: float = 4.0) -> pd.DataFrame:
-    """Build the (n_days x 75) resonance matrix. `dates` is a pandas datetime Series."""
+def build_features(dates: pd.Series, hour_ut: float = 4.0, natal_lon: dict[str, float] | None = None) -> pd.DataFrame:
+    """Build the (n_days x 75) resonance matrix. `dates` is a pandas datetime Series.
+
+    `natal_lon` optionally overrides the natal planet longitudes (a dict
+    {planet: degrees}); if None, the chart in config.NATAL_CHART is used.
+    """
     ephemeris.configure()
-    natal = ephemeris.natal_longitudes()
-    natal_lon = {q: natal[q][0] for q in config.NATAL_PLANETS}
+    if natal_lon is None:
+        natal = ephemeris.natal_longitudes()
+        natal_lon = {q: natal[q][0] for q in config.NATAL_PLANETS}
 
     cols = feature_names()
     dts = pd.to_datetime(dates).reset_index(drop=True)
